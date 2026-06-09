@@ -1,0 +1,25 @@
+---
+name: CI
+on:
+  schedule:
+    - cron: 0 */4 * * *
+  workflow_dispatch: null
+jobs:
+  update-database:
+    name: Update Graphic Novel Database
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Update Database
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          curl -fsSL -o graphic_novels.db https://github.com/grayespinoza/graphic-novel-price-database/releases/download/latest/graphic_novels.db
+          git add graphic_novels.db
+          git commit -m "chore: update database"
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git main
