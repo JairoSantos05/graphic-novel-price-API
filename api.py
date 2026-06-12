@@ -5,7 +5,7 @@ from dbqueries import (get_prices_for_book, best_deals, price_history)
 from datetime import datetime
 
 class Price(BaseModel):
-    store: str
+    retailer: str
     price: float
 
 class Product(BaseModel):
@@ -16,7 +16,7 @@ class Product(BaseModel):
 
 class Deal(BaseModel):
     isbn: int
-    store: str
+    retailer: str
     price: float
 
 class PriceRange(BaseModel):
@@ -25,7 +25,7 @@ class PriceRange(BaseModel):
 
 class PriceHistoryPoint(BaseModel):
     date: str
-    store: str
+    retailer: str
     price: float | None
 
 class BookHistoryResponse(BaseModel):
@@ -46,7 +46,7 @@ def get_deals(limit: int = 10):
     raw_deals = best_deals(limit)
     
     formatted_deals = [
-        Deal(isbn=row[0], store=row[1], price=row[2]) 
+        Deal(isbn=row[0], retailer=row[1], price=row[2]) 
         for row in raw_deals
     ]
     return formatted_deals
@@ -62,7 +62,7 @@ def book_price_history(isbn: int):
             formatted_history.append(
                 PriceHistoryPoint(
                     date=str(row[0]), 
-                    store=row[1],
+                    retailer=row[1],
                     price=row[2]
                 )
             )
