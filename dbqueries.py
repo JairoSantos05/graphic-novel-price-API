@@ -1,7 +1,5 @@
 from db import connection
 
-from db import connection
-
 def get_prices_for_book(isbn):
     conn = connection()
     cursor = conn.cursor()
@@ -26,8 +24,15 @@ def best_deals(limit=10):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT isbn, retailer, price
-        FROM Prices
+        SELECT isbn, retailer, MIN(price) as price
+        FROM Prices p
+        WHERE date = (
+            SELECT MAX(date) 
+            FROM Prices 
+            WHERE isbn = p.isbn AND retailer = p.retailer
+        )
+        AND price > 0
+        GROUP BY isbn
         ORDER BY price ASC
         LIMIT ?
     """, (limit,))

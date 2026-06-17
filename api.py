@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List
 from dbqueries import (get_prices_for_book, best_deals, price_history)
 from datetime import datetime
+from fastapi.middleware.cors import CORSMiddleware
 
 class Price(BaseModel):
     retailer: str
@@ -34,11 +35,18 @@ class BookHistoryResponse(BaseModel):
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/book/{isbn}/prices")
 def book_prices(isbn: int):
     """Get cheapest price for a book given isbn."""
     return get_prices_for_book(isbn)
-
 
 @app.get("/deals", response_model=List[Deal])
 def get_deals(limit: int = 10):
