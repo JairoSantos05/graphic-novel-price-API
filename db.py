@@ -1,6 +1,10 @@
 import sqlite3
 import os
 
-DBPath = os.getenv("DATABASE_URL", "graphic_novels.db")
-def connection(db_path = None):
-    return sqlite3.connect(db_path or DBPath)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DBPath = os.path.join(BASE_DIR, "graphic_novels.db")
+
+def connection():
+    conn = sqlite3.connect(DBPath)
+    conn.row_factory = sqlite3.Row
+    return conn
