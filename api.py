@@ -43,36 +43,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/book/{isbn}/prices")
-def book_prices(isbn: int):
-    """Get cheapest price for a book given isbn."""
-    return get_prices_for_book(isbn)
+@app.get("/book/{search_term}/prices")
+def read_prices(search_term: str):
+    return get_prices_for_book(search_term)
 
-@app.get("/deals", response_model=List[Deal])
-def get_deals(limit: int = 10):
-    """Get the absolute cheapest book prices tracked across the entire system."""
-    raw_deals = best_deals(limit)
-    
-    formatted_deals = [
-        Deal(isbn=row[0], retailer=row[1], price=row[2]) 
-        for row in raw_deals
-    ]
-    return formatted_deals
+@app.get("/deals")
+def read_deals(limit: int = 150):
+    return best_deals(limit)
 
-@app.get("/book/{isbn}/history", response_model=BookHistoryResponse)
-def book_price_history(isbn: int):
-    """Returns every recorded price change over time for a graphic novel."""
-    raw_history = price_history(isbn)
-    
-    formatted_history = []
-    for row in raw_history:
-        if row[2] is not None:
-            formatted_history.append(
-                PriceHistoryPoint(
-                    date=str(row[0]), 
-                    retailer=row[1],
-                    price=row[2]
-                )
-            )
-            
-    return BookHistoryResponse(isbn=isbn, history=formatted_history)
+@app.get("/book/{isbn}/history")
+def read_history(isbn: int):
+    return price_history(isbn)

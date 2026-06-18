@@ -1,57 +1,85 @@
 from db import connection
 
-def get_prices_for_book(isbn):
+def get_prices_for_book(search_term: str):
     conn = connection()
     cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT retailer, price 
+    query = """
+        SELECT p.retailer, p.price, p.url, g.title, p.isbn 
         FROM Prices p
-        WHERE isbn = ? AND date = (
-            SELECT MAX(date) 
-            FROM Prices 
-            WHERE isbn = p.isbn AND retailer = p.retailer
-        )
-        ORDER BY price ASC
-    """, (isbn,))
-
-    results = cursor.fetchall()
+        LEFT JOIN graphic_novels g ON p.isbn = g.isbn
+        WHERE (p.isbn = ? OR g.title LIKE ?)
+          AND p.price IS NOT NULL 
+          AND p.price > 0
+          AND p.date = (SELECT MAX(date) FROM Prices WHERE isbn = p.isbn AND retailer = p.retailer)
+        ORDER BY p.price ASC
+    """
+    cursor.execute(query, (search_term, f"%{search_term}%"))
+    rows = cursor.fetchall()
     conn.close()
-    return results
+    
+    formatted_results = []
+    for row in rows:
+        formatted_results.append({
+            "retailer": row[0],
+            "price": row[1],
+            "url": row[2],
+            "title": row[3] if row[3] else f"Graphic Novel ({row[4]})",
+            "isbn": row[4]
+        })
+    return formatted_results
 
-def best_deals(limit=10):
+
+def best_deals(limit: int):
     conn = connection()
     cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT isbn, retailer, MIN(price) as price
+    query = """
+        SELECT p.isbn, p.retailer, p.price, g.title, p.url
         FROM Prices p
-        WHERE date = (
-            SELECT MAX(date) 
-            FROM Prices 
-            WHERE isbn = p.isbn AND retailer = p.retailer
-        )
-        AND price > 0
-        GROUP BY isbn
-        ORDER BY price ASC
+        LEFT JOIN graphic_novels g ON p.isbn = g.isbn
+        WHERE p.price IS NOT NULL 
+          AND p.price > 0
+          AND p.date = (SELECT MAX(date) FROM Prices WHERE isbn = p.isbn AND retailer = p.retailer)
+        ORDER BY p.price ASC
         LIMIT ?
-    """, (limit,))
-    
-    results = cursor.fetchall()
+    """
+    cursor.execute(query, (limit,))
+    rows = cursor.fetchall()
     conn.close()
-    return results
+    
+    formatted_results = []
+    for row in rows:
+        formatted_results.append({
+            "isbn": row[0],
+            "retailer": row[1],
+            "price": row[2],
+            "title": row[3] if row[3] else f"Graphic Novel ({row[0]})",
+            "url": row[4]
+        })
+    return formatted_results
 
-def price_history(isbn):
+
+def price_history(isbn: int):
     conn = connection()
     cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT date, retailer, price
-        FROM Prices
-        WHERE isbn = ?
-        ORDER BY date ASC
-    """, (isbn,))
-    
-    results = cursor.fetchall()
+    query = """
+        SELECT p.date, p.retailer, p.price, g.title
+        FROM Prices p
+        LEFT JOIN graphic_novels g ON p.isbn = g.isbn
+        WHERE p.isbn = ?
+          AND p.price IS NOT NULL 
+          AND p.price > 0
+        ORDER BY p.date ASC
+    """
+    cursor.execute(query, (isbn,))
+    rows = cursor.fetchall()
     conn.close()
-    return results
+    
+    history_list = []
+    for row in rows:
+        history_list.append({
+            "date": row[0],
+            "retailer": row[1],
+            "price": row[2],
+            "title": row[3] if row[3] else f"Graphic Novel ({isbn})"
+        })
+    return {"isbn": isbn, "history": history_list}
