@@ -58,19 +58,21 @@ def best_deals(limit: int):
     return formatted_results
 
 
-def price_history(isbn: int):
+def price_history(isbn):
     conn = connection()
     cursor = conn.cursor()
+    
     query = """
         SELECT p.date, p.retailer, p.price, g.title
         FROM Prices p
         LEFT JOIN graphic_novels g ON p.isbn = g.isbn
-        WHERE p.isbn = ?
+        WHERE (p.isbn = ? OR p.isbn = CAST(? AS TEXT))
           AND p.price IS NOT NULL 
           AND p.price > 0
         ORDER BY p.date ASC
     """
-    cursor.execute(query, (isbn,))
+    
+    cursor.execute(query, (isbn, str(isbn)))
     rows = cursor.fetchall()
     conn.close()
     
