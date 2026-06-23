@@ -3,6 +3,9 @@ from db import connection
 def get_prices_for_book(search_term: str):
     conn = connection()
     cursor = conn.cursor()
+
+    #Joins price values to their text labels, filters out NULL or 0 values, 
+    # and selects only the absolute latest scraper date entry for each retailer row.
     query = """
         SELECT p.retailer, p.price, p.url, g.title, p.isbn 
         FROM Prices p
@@ -17,6 +20,7 @@ def get_prices_for_book(search_term: str):
     rows = cursor.fetchall()
     conn.close()
     
+    #Standardizes the raw SQL output table grid layout into JSON objects for React
     formatted_results = []
     for row in rows:
         formatted_results.append({
@@ -62,6 +66,7 @@ def price_history(isbn):
     conn = connection()
     cursor = conn.cursor()
     
+    # Gathers all points across all tracking dates from oldest to newest
     query = """
         SELECT p.date, p.retailer, p.price, g.title
         FROM Prices p

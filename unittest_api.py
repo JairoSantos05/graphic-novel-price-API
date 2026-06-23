@@ -3,10 +3,14 @@ import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 
+#Temp database in RAM to make sure it runs test quickly without changing anyhting
 _raw_test_db = sqlite3.connect(":memory:", check_same_thread=False)
 _raw_test_db.row_factory = sqlite3.Row
 
 class SafeTestConnection:
+
+    #Code runs conn.close() after every query and gets rid of data. Overriding close() 
+    # to do nothing lets us run all tests with the fake data
     def cursor(self):
         return _raw_test_db.cursor()
     def commit(self):
@@ -21,6 +25,7 @@ def init_test_db():
     cursor.execute("DROP TABLE IF EXISTS Prices")
     cursor.execute("DROP TABLE IF EXISTS graphic_novels")
     
+    #Copy of the databsae layouts
     cursor.execute("""
         CREATE TABLE graphic_novels (
             isbn INTEGER PRIMARY KEY,
@@ -38,8 +43,11 @@ def init_test_db():
         )
     """)
     
+    #Regular inputs
     cursor.execute("INSERT INTO graphic_novels VALUES (123456, 'Batman: Year One')")
     cursor.execute("INSERT INTO graphic_novels VALUES (789012, 'Watchmen')")
+
+    #Boundary inputs extreme / anomalies
     cursor.execute("INSERT INTO graphic_novels VALUES (999999, 'Spiderman')")
     cursor.execute("INSERT INTO graphic_novels VALUES (888888, 'Sandman')")
     
@@ -47,13 +55,18 @@ def init_test_db():
     cursor.execute("INSERT INTO Prices VALUES ('2026-06-12', 'Store A', 17.99, 123456, 'http://storea.com')")
     cursor.execute("INSERT INTO Prices VALUES ('2026-06-12', 'Store B', 15.50, 123456, 'http://storeb.com')")
     cursor.execute("INSERT INTO Prices VALUES ('2026-06-12', 'Store A', 29.99, 789012, 'http://storea.com')")
+    
+    #Price = 0 case
     cursor.execute("INSERT INTO Prices VALUES ('2026-06-12', 'Store C', 0.00, 999999, 'http://storec.com')")
+    
+    #Price is missing/corrupted 
     cursor.execute("INSERT INTO Prices VALUES ('2026-06-12', 'Store D', NULL, 888888, 'http://stored.com')")
     
     _raw_test_db.commit()
 
 init_test_db()
 
+#Force db.connection to load temp database instead of real db file
 with patch("db.connection", return_value=test_db):
     from api import app
     client = TestClient(app)
