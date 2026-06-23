@@ -21,5 +21,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           curl -fsSL -o graphic_novels.db https://github.com/grayespinoza/graphic-novel-price-database/releases/download/latest/graphic_novels.db
           git add graphic_novels.db
-          git commit -m "chore: update database"
+          git commit -m "chore: update database" || echo "nothing to commit, working tree clean"
           git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git main
