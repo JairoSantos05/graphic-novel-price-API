@@ -36,13 +36,24 @@ def get_prices_for_book(search_term: str):
 def best_deals(limit: int):
     conn = connection()
     cursor = conn.cursor()
+    
+    # Optimized query: Finds latest dates first, THEN pulls the matching prices
     query = """
+        WITH LatestPrices AS (
+            SELECT isbn, retailer, MAX(date) as max_date
+            FROM Prices
+            GROUP BY isbn, retailer
+        )
         SELECT p.isbn, p.retailer, p.price, g.title, p.url
         FROM Prices p
-        LEFT JOIN graphic_novels g ON p.isbn = g.isbn
+        INNER JOIN LatestPrices lp 
+            ON p.isbn = lp.isbn 
+           AND p.retailer = lp.retailer 
+           AND p.date = lp.max_date
+        LEFT JOIN graphic_novels g 
+            ON p.isbn = g.isbn
         WHERE p.price IS NOT NULL 
           AND p.price > 0
-          AND p.date = (SELECT MAX(date) FROM Prices WHERE isbn = p.isbn AND retailer = p.retailer)
         ORDER BY p.price ASC
         LIMIT ?
     """
